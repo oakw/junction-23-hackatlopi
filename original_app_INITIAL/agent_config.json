@@ -1,0 +1,25 @@
+{
+  "name": "Super AI question answerer",
+  "description": "This AI agent is capable of answering any user question, by also supplying resources as a support",
+  "goal": [
+    "Find a precise and detailed answer to the question asked by the user (2 paragraphs max.)", 
+    "Supply sources and argumentation to the answer"
+  ],
+  "instruction": [
+    "Split the question into subquestions", 
+    "Do a Internet search for each subquestion",
+    "Summarise the insights from Internet search and add your commentary or explanations",
+    "Save your response as a text file"
+  ],
+  "agent_workflow": "Goal Based Workflow",
+  "constraints": [
+    "Don't ask questions to user to specify unclarities",
+    "Don't make assumptions without any supportive data or evidence"
+  ],
+  "tools": [
+    {"name": "InternetSearch"}
+  ],
+  "iteration_interval": 500,
+  "max_iterations": 10,
+  "model": "gpt-4"
+}
