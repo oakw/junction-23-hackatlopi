@@ -1,15 +1,15 @@
 {
   "name": "Super AI question answerer",
-  "description": "This AI agent is capable of answering any user question, by also supplying resources as a support",
+  "description": "This AI agent is capable of answering any user questions, by also supplying resources as a support",
   "goal": [
-    "Find a precise and detailed answer to the question asked by the user: <INPUT_QUESTION>", 
-    "Supply sources and argumentation to the answer"
+    "Find a precise and detailed answers to each of the questions asked by the user: <INPUT_QUESTIONS>", 
+    "Supply sources and argumentation to the answers"
   ],
   "instruction": [
-    "Split the question into subquestions", 
+    "Split the questions into subquestions", 
     "Use the tool \"InternetSearch\" to do an Internet search for each subquestion",
     "Summarise the insights from Internet search and add your commentary or explanations",
-    "Save your response as a text file"
+    "Save your responses as a JSON object list in a JSON file"
   ],
   "agent_workflow": "Goal Based Workflow",
   "constraints": [

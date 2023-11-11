@@ -14,9 +14,16 @@ class SuperAGIInteractor():
     super_agi_key = OriginalConfig.get_super_agi_key
     super_agi_url = OriginalConfig.get_super_agi_url
     self.client = Client(api_key=super_agi_key, url=super_agi_url)
+    self.running_agent_id = None
 
-  def create_agent_instance(self):
-    agent_config_params = OriginalConfig.get_agent_config()
+  def is_running_agent(self):
+    if self.running_agent_id is None:
+      return False
+    else:
+      return True
+
+  def create_agent_instance(self, user_prompt_questions):
+    agent_config_params = OriginalConfig.get_agent_config(questions=user_prompt_questions)
 
     # TODO: resolve unused config params
     agent_config = AgentConfig(
@@ -42,7 +49,11 @@ class SuperAGIInteractor():
     return agent['agent_id']
   
   def start_agent_run(self, agent_id):
+    if self.running_agent_id is not None:
+      self.pause_agent(self.latest_agent_id)
+
     run_agent = self.client.create_agent_run(agent_id=agent_id)
+    self.running_agent_id = agent_id
     return run_agent['run_id']
   
   def retrieve_agent_status(self, agent_id, run_ids=None):
@@ -54,12 +65,17 @@ class SuperAGIInteractor():
     # contains 'run_id' and 'status' (RUNNING, ETC)
     return run_status
   
-  def pause_agent(self, agent_id, run_id=None):
+  def pause_agent(self, agent_id=None, run_ids=None):
     # TODO: add check whether the agent is running
-    if run_id is None:
-      result = self.client.pause_agent(agent_id=agent_id)
+    if agent_id is None:
+      agent_id = self.running_agent_id
+    
+    if run_ids is not None:
+      result = self.client.pause_agent(agent_id=agent_id, agent_run_ids=run_ids)
     else:
-      result = self.client.pause_agent(agent_id=agent_id, agent_run_ids=[run_id])
+      result = self.client.pause_agent(agent_id=agent_id)
+
+    self.running_agent_id = None
 
     if result['result'] is not 'success':
       raise Exception("Failed to pause the agent")
@@ -70,6 +86,7 @@ class SuperAGIInteractor():
       result = self.client.resume_agent(agent_id=agent_id)
     else:
       result = self.client.resume_agent(agent_id=agent_id, agent_run_ids=[run_id])
+    self.running_agent_id = agent_id
 
     if result['result'] is not 'success':
       raise Exception("Failed to resume the agent")

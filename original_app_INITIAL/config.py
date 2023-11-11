@@ -2,28 +2,28 @@ import os
 import json
 
 class OriginalConfig():
-  def load_agent_config(user_question):
+  def load_agent_config(user_questions):
     try:
       json_file_path = "agent_config.json"
       with open(json_file_path, 'r') as file:
         data = json.load(file)
-        question_specified = data["goal"][0].replace("<INPUT_QUESTION>", user_question)
+        question_specified = data["goal"][0].replace("<INPUT_QUESTIONS>", user_questions)
         data["goal"][0] = question_specified
     except:
       # TODO: provide default data
       # TODO: consider proper tool name
       data = {
         "name": "Super AI question answerer",
-        "description": "This AI agent is capable of answering any user question, by also supplying resources as a support",
+        "description": "This AI agent is capable of answering any user questions, by also supplying resources as a support",
         "goal": [
-          f"Find a precise and detailed answer to the question asked by the user: {user_question}", 
-          "Supply sources and argumentation to the answer"
+          f"Find a precise and detailed answers to each of the questions asked by the user: {user_questions}", 
+          "Supply sources and argumentation to the answers"
           ],
         "instruction": [
-          "Split the question into subquestions", 
+          "Split the questions into subquestions", 
           "Use the tool \"InternetSearch\" to do an Internet search for each subquestion",
           "Summarise the insights from Internet search and add your commentary or explanations",
-          "Save your response as a text file"
+          "Save your responses as a JSON object list in a JSON file"
           ],
         "agent_workflow": "Goal Based Workflow",
         "constraints": [
@@ -65,5 +65,5 @@ class OriginalConfig():
     return os.environ.get(self.SUPER_AGI_URL)
   
   @classmethod
-  def get_agent_config(self):
-    return self.load_agent_config()
+  def get_agent_config(self, questions):
+    return self.load_agent_config(user_questions=questions)
