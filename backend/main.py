@@ -2,7 +2,10 @@ import asyncio
 import websockets
 import json
 from threading import Thread
+from dotenv import load_dotenv
 import time
+
+load_dotenv()
 
 def print_hello_world():
     while True:
