@@ -4,32 +4,45 @@ import json
 from threading import Thread
 from dotenv import load_dotenv
 import time
-
+from hardware_analyzer import docker_monitor
 
 load_dotenv()
 
-# def print_hello_world():
-#     while True:
-#         print("Hello, world")
-#         time.sleep(3)
-
-# t = Thread(target=print_hello_world)
-# t.start()
+monitor = docker_monitor.DockerMonitor("nginxtest-client-1")
+monitor.start()
 
 
-suggestions = [
-    {
-        "of_type": "Faithfullness",
-        "content": "It is wrong to cheat on your partner. Make it better!"
-    },
-    {
-        "of_type": "Content",
-        "content": "You should be happy with what you have. Make it better!"
-    }
-]
+async def get_monitored_data(websocket, path):
+    while True:
+
+        total_cpu_usage = monitor.get_results().measurements[1].total_cpu_usage
+        memory_usage = monitor.get_results().measurements[1].memory_usage
+        read_time = monitor.get_results().measurements[1].read_time.isoformat()
+        rx_bytes = monitor.get_results().measurements[1].networks["eth0"]["rx_bytes"]
+        tx_bytes = monitor.get_results().measurements[1].networks["eth0"]["tx_bytes"]
+        
+        measurment_data = {
+            "total_cpu_usage": total_cpu_usage,
+            "memory_usage": memory_usage,
+            "read_time": read_time,
+            "rx_bytes": rx_bytes,
+            "tx_bytes": tx_bytes
+        }
+        # Serialize to JSON before sending
+        await websocket.send(json.dumps(measurment_data))
+
 
 async def answer(websocket, path):
     async for message in websocket:
+        async def start_monitor(websocket, path):
+            t = Thread(target=get_monitored_data, args=(websocket, path))
+            t.start()
+            while True:
+                time.sleep(1)
+                await get_monitored_data(websocket, path)
+
+        asyncio.create_task(start_monitor(websocket, path))
+
         try:
             data = json.loads(message)
             role = data["role"]
