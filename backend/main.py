@@ -4,13 +4,13 @@ import json
 from threading import Thread
 import time
 
-def print_hello_world():
-    while True:
-        print("Hello, world")
-        time.sleep(3)
+# def print_hello_world():
+#     while True:
+#         print("Hello, world")
+#         time.sleep(3)
 
-t = Thread(target=print_hello_world)
-t.start()
+# t = Thread(target=print_hello_world)
+# t.start()
 
 
 suggestions = [
@@ -20,7 +20,7 @@ suggestions = [
     },
     {
         "of_type": "Content",
-        "content": "It is wrong to cheat on your partner. Make it better!"
+        "content": "You should be happy with what you have. Make it better!"
     }
 ]
 
@@ -28,34 +28,52 @@ async def answer(websocket, path):
     async for message in websocket:
         try:
             data = json.loads(message)
-            user_name = data["role"]
-            user_message = data["message"]
+            role = data["role"]
+            message = data["message"]
 
-            # Pass the user_message to the AI_response function
-            ai_response = await AI_response(user_message)
 
-            # Create a response
-            response = {
-                "role": user_name,
-                "message": ai_response["ai_message"],
-                "suggestions": ai_response["suggestions"]
-            }
-            response_json = json.dumps(response)
+            if role == "AI":
+                if "suggestions" in data:
+                    response = {
+                        "role": role,
+                        "message": message,
+                        "suggestions": data["suggestions"]
+                    }
+                    
+                else:
+                    response = {
+                        "role": role,
+                        "message": message,
+                    }
+                response_json = json.dumps(response)
 
-            # Send the response to the current client
-            await websocket.send(response_json)
+                await websocket.send(response_json)
+
+                
+            elif role == "User":
+                # Send the message to the AI and await its response
+                ai_response = await AI_send_request(message)
+
+                # Send the AI's response back to the user
+                await websocket.send(ai_response)
 
         except json.JSONDecodeError:
             print("Received message is not valid JSON")
 
-async def AI_response(message):
-    # Implement your AI logic here to generate a response
-    # For now, let's just return a dictionary with ai_message and suggestions
-    ai_response = {
-        "ai_message": message,
-        "suggestions": suggestions
-    }
-    return ai_response
+async def AI_send_request(message):
+    async with websockets.connect("ws://localhost:8766") as ai_websocket:
+        # Send the user's message to the AI
+        ai_request = {
+            "role": "User",
+            "message": message
+        }
+        await ai_websocket.send(json.dumps(ai_request))
+
+        # Await the AI's response
+        ai_response = await ai_websocket.recv()
+        return ai_response
+
+
 
 async def main():
     async with websockets.serve(lambda websocket, path, *args, **kwargs: answer(websocket, path), "localhost", 8765):
