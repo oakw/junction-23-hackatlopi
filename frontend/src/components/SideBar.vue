@@ -2,15 +2,15 @@
         <div class="pr-6 pl-5 border-r-[1px] border-gray-200 py-4 flex flex-col">
       <div class="flex items-center mb-7">
         <p class="font-extrabold grow">Test User</p>
-        <div class="bg-red-500 rounded-xl w-8 h-8"></div>
+        <ArrowLeftOnRectangleIcon class="w-6 h-6 cursor-pointer"/>
       </div>
 
       <ul class="flex flex-col gap-y-2">
-        <li>Option 1</li>
-        <li>Option 2</li>
-        <li>Option 3</li>
-        <li>Option 4</li>
-        <li>Option 5</li>
+        <li class="cursor-pointer">Parameters</li>
+        <li class="cursor-pointer">Models</li>
+        <li class="cursor-pointer">Logs</li>
+        <li class="cursor-pointer">Settings</li>
+        <li class="cursor-pointer">About Us</li>
       </ul>
 
       <div class="max-w-[110px] mt-auto -ml-10 w-full self-center">
@@ -28,3 +28,8 @@
       </div>
     </div>
 </template>
+
+<script setup>
+import { ArrowLeftOnRectangleIcon } from "@heroicons/vue/24/solid";
+
+</script>
