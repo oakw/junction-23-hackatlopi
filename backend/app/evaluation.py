@@ -117,6 +117,17 @@ class LlmEvaluator():
 
   def get_average_metric_stats(self):
     res = self.db_conn.retrieve_all()
+    if len(res) == 0 or res is None:
+      result = {
+        "correctness": "N/A",
+        "faithfulness": "N/A",
+        "guideline": "N/A",
+        "pairwise": "N/A",
+        "relevancy": "N/A",
+        "semantics": "N/A"
+      }
+      return result
+
     correctness_evals = [item[3] for item in res]
     faithfulness_evals = [item[5] for item in res]
     guideline_evals = [item[7] for item in res]
