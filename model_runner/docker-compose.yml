@@ -1,0 +1,5 @@
+services:
+  runner:
+    build: .
+    ports:
+      - '8765:8765'
