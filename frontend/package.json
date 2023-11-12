@@ -8,8 +8,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heroicons/vue": "^2.0.18",
     "pinia": "^2.1.7",
-    "vue": "^3.3.4"
+    "uuid": "^9.0.1",
+    "vue": "^3.3.4",
+    "vue3-plotly": "^0.0.7"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.4.0",
