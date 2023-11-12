@@ -1,4 +1,4 @@
-import comet_llm
+# import comet_llm
 import os
 
 from app.db_conn import DbConnection
@@ -34,10 +34,10 @@ class LlmEvaluator():
     self.llm = OpenAI(model="gpt-4")
     self.service_context = ServiceContext.from_defaults(llm=self.llm)
 
-    comet_llm.init(comet_api_key, comet_workspace, project=comet_project)
+    # comet_llm.init(comet_api_key, comet_workspace, project=comet_project)
     self.db_conn = DbConnection()
 
-  def describe_metrics(self, metric_list, avg_value, max_value):
+  async def describe_metrics(self, metric_list, avg_value, max_value):
     metric_list_processed = ", ".join(metric_list)
     messages = [
       ChatMessage(
@@ -46,20 +46,23 @@ class LlmEvaluator():
       ),
       ChatMessage(role=MessageRole.USER, content=f"The list of values: {metric_list_processed}, average value: {avg_value}, maximum value: {max_value}")    
     ]
-    conclusion = self.llm.chat(messages=messages)
+    conclusion = await self.llm.achat(messages=messages)
     return conclusion.message.content
 
-  def log_result(self, prompt, answer):
-    # TODO: add more data to log
-    comet_llm.log_prompt(
-      prompt=prompt,
-      output=answer
-    )
+  # def log_result(self, prompt, answer):
+  #   # TODO: add more data to log
+  #   comet_llm.log_prompt(
+  #     prompt=prompt,
+  #     output=answer
+  #   )
 
-  def give_pair_evaluation(self, prompt, answer):
+  async def give_pair_evaluation(self, prompt, answer):
     correctness_evaluator = CorrectnessEvaluator(service_context=self.service_context)
     faithfulness_evaluator = FaithfulnessEvaluator(service_context=self.service_context)
-    guideline_evaluator = GuidelineEvaluator(service_context=self.service_context)
+
+    # GUIDELINE = "The response should fully answer the query."
+    # guideline_evaluator = GuidelineEvaluator(service_context=self.service_context, guidelines=GUIDELINE)
+    
     pairwise_evaluator = PairwiseComparisonEvaluator(service_context=self.service_context)
     relevancy_evaluator = RelevancyEvaluator(service_context=self.service_context)
     semantics_evaluator = SemanticSimilarityEvaluator(service_context=self.service_context)
@@ -71,45 +74,52 @@ class LlmEvaluator():
       ),
       ChatMessage(role=MessageRole.USER, content=prompt)
     ]
-    reference = self.llm.chat(messages=messages)
+    reference = await self.llm.achat(messages=messages)
     reference = reference.message.content
 
-    correctness_eval_res = correctness_evaluator.evaluate(
+    correctness_eval_res = await correctness_evaluator.aevaluate(
+      query=prompt,
+      response=answer,
+      reference=reference
+    )
+    faithfulness_eval_res = await faithfulness_evaluator.aevaluate(
       query=prompt,
       response=answer,
       contexts=[reference]
     )
-    faithfulness_eval_res = faithfulness_evaluator.evaluate(
+
+    # guideline_eval_res = await guideline_evaluator.aevaluate(
+    #   query=prompt,
+    #   response=answer,
+    #   contexts=[reference]
+    # )
+    # guideline_eval_res.passing
+
+    pairwise_eval_res = await pairwise_evaluator.aevaluate(
+      query=prompt,
+      response=answer,
+      reference=reference,
+      second_response=reference
+      # TODO: add second response
+    )
+    relevancy_eval_res = await relevancy_evaluator.aevaluate(
       query=prompt,
       response=answer,
       contexts=[reference]
     )
-    guideline_eval_res = guideline_evaluator.evaluate(
+    semantics_eval_res = await semantics_evaluator.aevaluate(
       query=prompt,
       response=answer,
-      contexts=[reference]
-    )
-    pairwise_eval_res = pairwise_evaluator.evaluate(
-      query=prompt,
-      response=answer,
-      contexts=[reference]
-    )
-    relevancy_eval_res = relevancy_evaluator.evaluate(
-      query=prompt,
-      response=answer,
-      contexts=[reference]
-    )
-    semantics_eval_res = semantics_evaluator.evaluate(
-      query=prompt,
-      response=answer,
-      contexts=[reference]
+      reference=reference
+      # TODO: add second contexts
     )
 
     self.db_conn.add_result(
       prompt=prompt, answer=answer, reference=reference,
       correctness=correctness_eval_res.score, correctness_exp=correctness_eval_res.feedback,
       faithfulness=faithfulness_eval_res.score, faithfulnes_exp=faithfulness_eval_res.feedback,
-      guideline=guideline_eval_res.score, guideline_exp=guideline_eval_res.feedback,
+      # guideline=guideline_eval_res.score, guideline_exp=guideline_eval_res.feedback,
+      guideline=0, guideline_exp="N/A",
       pairwise=pairwise_eval_res.score, pairwise_exp=pairwise_eval_res.feedback,
       relevancy=relevancy_eval_res.score, relevancy_exp=relevancy_eval_res.feedback,
       semantics=semantics_eval_res.score, semantics_exp=semantics_eval_res.feedback
@@ -145,7 +155,8 @@ class LlmEvaluator():
     result = {
       "correctness": f"{correctness_avg} / 5.0 ; {self.describe_metrics(correctness_evals, correctness_avg, 5)}",
       "faithfulness": f"{faithfulness_avg} / 5.0 ; {self.describe_metrics(faithfulness_evals, faithfulness_avg, 5)}",
-      "guideline": f"{guideline_avg} / 5.0 ; {self.describe_metrics(guideline_evals, guideline_avg, 5)}",
+      # "guideline": f"{guideline_avg} / 5.0 ; {self.describe_metrics(guideline_evals, guideline_avg, 5)}",
+      "guideline": f"{guideline_avg} / 5.0 ; N/A",
       "pairwise": f"{pairwise_avg} / 5.0 ; {self.describe_metrics(pairwise_evals, pairwise_avg, 5)}",
       "relevancy": f"{relevancy_avg} / 5.0 ; {self.describe_metrics(relevancy_evals, relevancy_avg, 5)}",
       "semantics": f"{semantics_avg} / 5.0 ; {self.describe_metrics(semantics_evals, semantics_avg, 5)}"

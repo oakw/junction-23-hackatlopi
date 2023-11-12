@@ -8,9 +8,13 @@ from websocket import create_connection
 from dotenv import load_dotenv
 
 from hardware_analyzer import docker_monitor
-from app import evaluation
+from app.evaluation import LlmEvaluator
 
 load_dotenv()
+
+# Start monitoring docker container that runs LLM
+monitor = docker_monitor.DockerMonitor("model_runner-runner-1")
+monitor.start()
 
 
 class BridgeEvaluator():
@@ -19,15 +23,12 @@ class BridgeEvaluator():
         asyncio.get_event_loop().run_until_complete(self.transport.start_server)
         asyncio.get_event_loop().run_forever()
 
-        # Start monitoring docker container that runs LLM
-        self.monitor = docker_monitor.DockerMonitor("nginxtest-client-1")
-        self.monitor.start()
-
         # Set up LLM quality evaluator
-        self.evaluator = evaluation.LlmEvaluator()
+        # self.evaluator = LlmEvaluator()
 
     async def extract_analysis(self):
-        metric_stats = self.evaluator.get_average_metric_stats()
+        evaluator = LlmEvaluator()
+        metric_stats = evaluator.get_average_metric_stats()
 
         await self.respond(dict(
             id=1, # TODO: make dynamic
@@ -36,23 +37,22 @@ class BridgeEvaluator():
         ))
 
     async def get_monitored_data(self):
-        while True:
-            # Physical performance measurments
-            total_cpu_usage = self.monitor.get_results().measurements[1].total_cpu_usage
-            memory_usage = self.monitor.get_results().measurements[1].memory_usage
-            read_time = self.monitor.get_results().measurements[1].read_time.isoformat()
-            rx_bytes = self.monitor.get_results().measurements[1].networks["eth0"]["rx_bytes"]
-            tx_bytes = self.monitor.get_results().measurements[1].networks["eth0"]["tx_bytes"]
+        # Physical performance measurments
+        total_cpu_usage = monitor.get_results().measurements[1].total_cpu_usage
+        memory_usage = monitor.get_results().measurements[1].memory_usage
+        read_time = monitor.get_results().measurements[1].read_time.isoformat()
+        rx_bytes = monitor.get_results().measurements[1].networks["eth0"]["rx_bytes"]
+        tx_bytes = monitor.get_results().measurements[1].networks["eth0"]["tx_bytes"]
 
-            measurment_data = {
-                "total_cpu_usage": total_cpu_usage,
-                "memory_usage": memory_usage,
-                "read_time": read_time,
-                "rx_bytes": rx_bytes,
-                "tx_bytes": tx_bytes
-            }
-            # Serialize to JSON before sending
-            await self.respond(measurment_data)
+        measurment_data = {
+            "total_cpu_usage": total_cpu_usage,
+            "memory_usage": memory_usage,
+            "read_time": read_time,
+            "rx_bytes": rx_bytes,
+            "tx_bytes": tx_bytes
+        }
+        # Serialize to JSON before sending
+        await self.respond(measurment_data)
 
     async def send_chat_message(self, message: str):
         # TODO: determine and extract proper model URL
@@ -83,10 +83,10 @@ class BridgeEvaluator():
 
         # Start monitoring LLMs physical resources (after starting the chat?)
         async def start_monitor():
-            t = Thread(target=self.get_monitored_data)
-            t.start()
+            # t = Thread(target=self.get_monitored_data)
+            # t.start()
             while True:
-                time.sleep(1)
+                await asyncio.sleep(1)
                 await self.get_monitored_data()
 
         asyncio.create_task(start_monitor())
@@ -103,7 +103,9 @@ class BridgeEvaluator():
 
         # Await the AI's response
         ai_response = model_interactor.wait_for_response()
-        self.evaluator.give_pair_evaluation(message, ai_response)
+
+        evaluator = LlmEvaluator()
+        await evaluator.give_pair_evaluation(message, ai_response)
 
         return ai_response
     
