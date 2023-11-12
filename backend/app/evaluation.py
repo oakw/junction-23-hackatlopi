@@ -38,7 +38,7 @@ class LlmEvaluator():
     self.db_conn = DbConnection()
 
   async def describe_metrics(self, metric_list, avg_value, max_value):
-    metric_list_processed = ", ".join(metric_list)
+    metric_list_processed = ", ".join([str(round(i, 1)) for i in metric_list])
     messages = [
       ChatMessage(
         role=MessageRole.SYSTEM, 
@@ -77,6 +77,8 @@ class LlmEvaluator():
     reference = await self.llm.achat(messages=messages)
     reference = reference.message.content
 
+    print("reference: ", reference)
+
     correctness_eval_res = await correctness_evaluator.aevaluate(
       query=prompt,
       response=answer,
@@ -114,6 +116,9 @@ class LlmEvaluator():
       # TODO: add second contexts
     )
 
+    print("prompt: ", prompt)
+    print("answer: ", answer)
+
     self.db_conn.add_result(
       prompt=prompt, answer=answer, reference=reference,
       correctness=correctness_eval_res.score, correctness_exp=correctness_eval_res.feedback,
@@ -125,7 +130,7 @@ class LlmEvaluator():
       semantics=semantics_eval_res.score, semantics_exp=semantics_eval_res.feedback
     )
 
-  def get_average_metric_stats(self):
+  async def get_average_metric_stats(self):
     res = self.db_conn.retrieve_all()
     if len(res) == 0 or res is None:
       result = {
@@ -153,12 +158,21 @@ class LlmEvaluator():
     semantics_avg = calclucalte_avg(semantics_evals)
 
     result = {
-      "correctness": f"{correctness_avg} / 5.0 ; {self.describe_metrics(correctness_evals, correctness_avg, 5)}",
-      "faithfulness": f"{faithfulness_avg} / 5.0 ; {self.describe_metrics(faithfulness_evals, faithfulness_avg, 5)}",
+      "correctness": f"{correctness_avg} / 5.0 ; {await self.describe_metrics(correctness_evals, correctness_avg, 5)}",
+      "faithfulness": f"{faithfulness_avg} / 5.0 ; {await self.describe_metrics(faithfulness_evals, faithfulness_avg, 5)}",
       # "guideline": f"{guideline_avg} / 5.0 ; {self.describe_metrics(guideline_evals, guideline_avg, 5)}",
       "guideline": f"{guideline_avg} / 5.0 ; N/A",
-      "pairwise": f"{pairwise_avg} / 5.0 ; {self.describe_metrics(pairwise_evals, pairwise_avg, 5)}",
-      "relevancy": f"{relevancy_avg} / 5.0 ; {self.describe_metrics(relevancy_evals, relevancy_avg, 5)}",
-      "semantics": f"{semantics_avg} / 5.0 ; {self.describe_metrics(semantics_evals, semantics_avg, 5)}"
+      "pairwise": f"{pairwise_avg} / 5.0 ; {await self.describe_metrics(pairwise_evals, pairwise_avg, 5)}",
+      "relevancy": f"{relevancy_avg} / 5.0 ; {await self.describe_metrics(relevancy_evals, relevancy_avg, 5)}",
+      "semantics": f"{semantics_avg} / 5.0 ; {await self.describe_metrics(semantics_evals, semantics_avg, 5)}"
     }
+    # result = {
+    #   "correctness": f"{correctness_avg} / 5.0 ; {self.describe_metrics(correctness_evals, correctness_avg, 5)}",
+    #   "faithfulness": f"{faithfulness_avg} / 5.0 ; {self.describe_metrics(faithfulness_evals, faithfulness_avg, 5)}",
+    #   # "guideline": f"{guideline_avg} / 5.0 ; {self.describe_metrics(guideline_evals, guideline_avg, 5)}",
+    #   "guideline": f"{guideline_avg} / 5.0 ; N/A",
+    #   "pairwise": f"{pairwise_avg} / 5.0 ; {self.describe_metrics(pairwise_evals, pairwise_avg, 5)}",
+    #   "relevancy": f"{relevancy_avg} / 5.0 ; {self.describe_metrics(relevancy_evals, relevancy_avg, 5)}",
+    #   "semantics": f"{semantics_avg} / 5.0 ; {self.describe_metrics(semantics_evals, semantics_avg, 5)}"
+    # }
     return result

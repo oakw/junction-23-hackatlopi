@@ -29,17 +29,55 @@ var timea = []
 var rxa = []
 var txa = []
 
-const socket = new WebSocket('ws://localhost:3000');
+const socket = new WebSocket('ws://localhost:8764');
 
-socket.addEventListener('answer', (event) => {
-  useEvaluatorStore().justInputted = false
-  useEvaluatorStore().waitingForAnswer = false
+socket.addEventListener('response', (event) => {
+  console.log('WebSocket connection opened:', event);
+
   useEvaluatorStore().addMessage(event.data, 'bot')
 });
 
 socket.addEventListener('message', (event) => {
-  console.log('WebSocket connection opened:', event);
-  sendData(rec);
+  const data = event.data
+  console.log(event.data)
+    console.log(data)
+    const response = JSON.parse(data);
+
+    if (response.type == 'response') {
+      useEvaluatorStore().addMessage(response.response, 'bot')
+      useEvaluatorStore().justInputted = false
+      useEvaluatorStore().waitingForAnswer = false
+      socket.send(JSON.stringify({
+        "type": "extract_analysis"
+      }))
+    } else if (response.type == 'measurment_data') {
+      console.log(useEvaluatorStore())
+      useEvaluatorStore().all_performance.total_cpu_usage.push(response.total_cpu_usage)
+      useEvaluatorStore().all_performance.memory_usage.push(response.memory_usage)
+      useEvaluatorStore().all_performance.read_time.push(new Date(response.read_time))
+      useEvaluatorStore().all_performance.rx_bytes.push(response.rx_bytes)
+      useEvaluatorStore().all_performance.tx_bytes.push(response.tx_bytes)
+    } else if (response.type == 'analysis') {
+      Object.assign(useEvaluatorStore().analysis, [])
+      const analysisS = response.response
+      let res = []
+      const analysisKeys = Object.keys(analysisS)
+      console.log(analysisS)
+      analysisKeys.forEach((key) => {
+        let a = {
+          typeOf: key,
+          content: analysisS[key]
+        }
+        console.log(a)
+        res.push(a)
+        useEvaluatorStore().analysis.push(a)
+
+      })
+      // useEvaluatorStore().analysis.value = res
+
+    }
+
+
 });
 
 socket.addEventListener('analysis', (event) => {
@@ -70,7 +108,7 @@ function sendData(data) {
   // Ensure the socket is open before sending
   if (socket.readyState === WebSocket.OPEN) {
     const jsonData = JSON.stringify(data);
-    socket.send(jsonData);
+    // socket.send(jsonData);
     console.log('Sent data:', jsonData);
   } else {
     console.error('WebSocket not open. Unable to send data.');
@@ -94,22 +132,7 @@ export const useEvaluatorStore = defineStore('evaluator', () => {
   //   'role': 'bot',
   //   'message': 'What did one snowman say to the other? \n Do you smell carrots?',
   // }])
-  const analysis = ref([{
-    typeOf: 'Faithfulness',
-    content: ''
-  }, {
-    typeOf: 'Answer Relevancy',
-    content: ''
-  }, {
-    typeOf: 'Context Precision',
-    content: ''
-  }, {
-    typeOf: 'Context Recall',
-    content: ''
-  }, {
-    typeOf: 'Harmfulness',
-    content: ''
-  }])
+  const analysis = reactive([])
 
 
 
@@ -221,6 +244,13 @@ export const useEvaluatorStore = defineStore('evaluator', () => {
       role: role,
       message: messageContent,
     })
+
+    if (role == 'user') {
+      socket.send(JSON.stringify({
+        "type": "send_chat_message",
+        "message": messageContent
+    }))
+    }
   }
 
   function waitForAnswer() {
@@ -235,7 +265,7 @@ export const useEvaluatorStore = defineStore('evaluator', () => {
   }
 
 
-  return { performance, messages, analysis, waitingForAnswer, addMessage, waitForAnswer }
+  return { performance, messages, analysis, waitingForAnswer, addMessage, waitForAnswer, all_performance }
 })
 
 
