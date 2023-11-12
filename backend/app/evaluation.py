@@ -1,7 +1,7 @@
 import comet_llm
 import os
 
-from db_conn import DbConnection
+from app.db_conn import DbConnection
 
 from llama_index import ServiceContext
 from llama_index.llms import (
