@@ -13,7 +13,7 @@ MODEL_FOLDER = f"{os.path.dirname(os.path.abspath(__file__))}/models"
 class DataTransport():
     def __init__(self, model_runner: ModelRunner):
         self.model_runner = model_runner
-        self.start_server = websockets.serve(self.server, "localhost", 8765)
+        self.start_server = websockets.serve(self.server, "0.0.0.0", 8765)
 
     async def handle_message(self, message):
         await self.model_runner.receive(message)

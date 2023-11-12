@@ -1,1 +1,2 @@
 gpt4all
+websockets
