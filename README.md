@@ -29,9 +29,9 @@ The tool helps to test the trustworthiness and sustainability of an LLM model ba
 - Query response time
 
 While building the prototype, we inspired from such resources as:
-- Conceptual frameworks (AI Verify, Vertex AI)
-- Fact-checking solutions (EvalAI, Factinsect)
-- Analysis and MLOps (Comet ML, Snorkel AI, W&B)
+- Conceptual frameworks ([AI Verify](https://aiverifyfoundation.sg/), [Vertex AI](https://cloud.google.com/vertex-ai))
+- Fact-checking solutions ([EvalAI](https://eval.ai/), [Factinsect](https://factinsect.com/))
+- Analysis and MLOps ([Comet ML](https://www.comet.com/site/products/llmops/), [Snorkel AI](https://snorkel.ai/), [W&B](https://wandb.ai/site))
 
 _*features partially under development_
 
@@ -56,6 +56,11 @@ The tech stack we used consists of:
 2. **Improve UI and front-end** side of the tool, so that it is easily accessible and usable by larger audiences.
 3. Add and improve the feature that helps to analyze physical metrics of LLM models, more specifically **GPU, CPU consumption**.
 4. **Test the existing tool** with at least 20 LLM models to understand the efficiency of the built tool. Make improvements based on the conclusions from testing.
+
+## Additional resources
+
+Some more cool resources about our project:
+1. [Video demo of our prototype](https://youtu.be/4-PQD2dqQjY)
 
 ## Thank you
 
