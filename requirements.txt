@@ -5,3 +5,4 @@ Flask==3.0.0
 comet_llm==1.6.0
 urllib3==1.26.18
 python-dotenv==1.0.0
+llama-index==0.8.68
