@@ -1,4 +1,8 @@
-
+.env
+__pycache__
 
 .venv
 model_runner/models
+
+*.db
+TESTER.py
