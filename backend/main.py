@@ -23,9 +23,11 @@ class BridgeEvaluator():
         self.monitor = docker_monitor.DockerMonitor("nginxtest-client-1")
         self.monitor.start()
 
+        # Set up LLM quality evaluator
+        self.evaluator = evaluation.LlmEvaluator()
+
     async def extract_analysis(self):
-        evaluator = evaluation.LlmEvaluator()
-        metric_stats = evaluator.get_average_metric_stats()
+        metric_stats = self.evaluator.get_average_metric_stats()
 
         await self.respond(dict(
             id=1, # TODO: make dynamic
@@ -68,8 +70,6 @@ class BridgeEvaluator():
         }
         # await ai_websocket.send(json.dumps(choose_model))
         model_interactor.send(json.dumps(choose_model))
-        # TODO: remove in prod
-        time.sleep(1)
 
         # Start the chat session
         start_chat = {
@@ -80,8 +80,6 @@ class BridgeEvaluator():
         }
         # await ai_websocket.send(json.dumps(start_chat))
         model_interactor.send(json.dumps(start_chat))
-        # TODO: remove in prod
-        time.sleep(1)
 
         # Start monitoring LLMs physical resources (after starting the chat?)
         async def start_monitor():
@@ -102,11 +100,11 @@ class BridgeEvaluator():
         }
         # await ai_websocket.send(json.dumps(ai_request))
         model_interactor.send(json.dumps(ai_request))
-        # TODO: remove in prod
-        time.sleep(1)
-        
+
         # Await the AI's response
         ai_response = model_interactor.wait_for_response()
+        self.evaluator.give_pair_evaluation(message, ai_response)
+
         return ai_response
     
     async def stop_everything(self) -> None:
