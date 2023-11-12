@@ -1,11 +1,13 @@
 import asyncio
 import websockets
 import json
-from threading import Thread
-from dotenv import load_dotenv
 import time
-from hardware_analyzer import docker_monitor
 
+from threading import Thread
+from websocket import create_connection
+from dotenv import load_dotenv
+
+from hardware_analyzer import docker_monitor
 from app import evaluation
 
 load_dotenv()
@@ -52,46 +54,60 @@ class BridgeEvaluator():
 
     async def send_chat_message(self, message: str):
         # TODO: determine and extract proper model URL
-        async with websockets.connect("ws://localhost:8766") as ai_websocket:
-            # Choose the model to use for chat
-            choose_model = {
-                "type": "choose_model",
-                "model_name": "orca-mini-3b-gguf2-q4_0.gguf", # TODO: make dynamic model name
-                "id": "1"
-            }
-            await ai_websocket.send(json.dumps(choose_model))
-            
-            # Start the chat session
-            start_chat = {
-                "type": "start_chat_session",
-                "system_prompt": "You are an advanced AI assistant designed to answer questions and providing supproting evidence", # TODO: make dynamic
-                "prompt_template": "", # TODO: make dynamic
-                "id": "1"
-            }
-            await ai_websocket.send(json.dumps(start_chat))
+        # async with websockets.connect("ws://localhost:8766") as ai_websocket:
 
-            # Start monitoring LLMs physical resources (after starting the chat?)
-            async def start_monitor():
-                t = Thread(target=self.get_monitored_data)
-                t.start()
-                while True:
-                    time.sleep(1)
-                    await self.get_monitored_data()
+        model_interactor = ModelInteractionClient()
+        # TODO: remove in prod
+        time.sleep(1)
 
-            asyncio.create_task(start_monitor())
+        # Choose the model to use for chat
+        choose_model = {
+            "type": "choose_model",
+            "model_name": "orca-mini-3b-gguf2-q4_0.gguf", # TODO: make dynamic model name
+            "id": "1"
+        }
+        # await ai_websocket.send(json.dumps(choose_model))
+        model_interactor.send(json.dumps(choose_model))
+        # TODO: remove in prod
+        time.sleep(1)
 
-            # Send the prompt
-            ai_request = {
-                "type": "prompt",
-                "prompt": message,
-                "max_tokens": 300, # TODO: make dynamic
-                "id": "1"
-            }
-            await ai_websocket.send(json.dumps(ai_request))
+        # Start the chat session
+        start_chat = {
+            "type": "start_chat_session",
+            "system_prompt": "You are an advanced AI assistant designed to answer questions and providing supproting evidence", # TODO: make dynamic
+            "prompt_template": "", # TODO: make dynamic
+            "id": "1"
+        }
+        # await ai_websocket.send(json.dumps(start_chat))
+        model_interactor.send(json.dumps(start_chat))
+        # TODO: remove in prod
+        time.sleep(1)
 
-            # Await the AI's response
-            ai_response = await ai_websocket.recv()
-            return ai_response
+        # Start monitoring LLMs physical resources (after starting the chat?)
+        async def start_monitor():
+            t = Thread(target=self.get_monitored_data)
+            t.start()
+            while True:
+                time.sleep(1)
+                await self.get_monitored_data()
+
+        asyncio.create_task(start_monitor())
+
+        # Send the prompt
+        ai_request = {
+            "type": "prompt",
+            "prompt": message,
+            "max_tokens": 300, # TODO: make dynamic
+            "id": "1"
+        }
+        # await ai_websocket.send(json.dumps(ai_request))
+        model_interactor.send(json.dumps(ai_request))
+        # TODO: remove in prod
+        time.sleep(1)
+        
+        # Await the AI's response
+        ai_response = model_interactor.wait_for_response()
+        return ai_response
     
     async def stop_everything(self) -> None:
         await self.respond(dict(
@@ -134,6 +150,17 @@ class DataTransport():
             self.websocket = websocket
             message = await self.websocket.recv()
             await self.handle_message(message)
+
+
+class ModelInteractionClient():
+    def __init__(self):
+        self.websocket = create_connection("ws://localhost:8765")
+
+    def send(self, message):
+        self.websocket.send(message)
+
+    def wait_for_response(self):
+        return self.websocket.recv()
 
 
 if __name__ == "__main__":
