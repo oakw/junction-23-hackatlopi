@@ -28,7 +28,7 @@ class BridgeEvaluator():
 
     async def extract_analysis(self):
         evaluator = LlmEvaluator()
-        metric_stats = evaluator.get_average_metric_stats()
+        metric_stats = await evaluator.get_average_metric_stats()
 
         await self.respond(dict(
             id=1, # TODO: make dynamic
@@ -38,18 +38,19 @@ class BridgeEvaluator():
 
     async def get_monitored_data(self):
         # Physical performance measurments
-        total_cpu_usage = monitor.get_results().measurements[1].total_cpu_usage
-        memory_usage = monitor.get_results().measurements[1].memory_usage
-        read_time = monitor.get_results().measurements[1].read_time.isoformat()
-        rx_bytes = monitor.get_results().measurements[1].networks["eth0"]["rx_bytes"]
-        tx_bytes = monitor.get_results().measurements[1].networks["eth0"]["tx_bytes"]
+        total_cpu_usage = monitor.get_results().measurements[-1].total_cpu_usage
+        memory_usage = monitor.get_results().measurements[-1].memory_usage
+        read_time = monitor.get_results().measurements[-1].read_time.isoformat()
+        rx_bytes = monitor.get_results().measurements[-1].networks["eth0"]["rx_bytes"]
+        tx_bytes = monitor.get_results().measurements[-1].networks["eth0"]["tx_bytes"]
 
         measurment_data = {
             "total_cpu_usage": total_cpu_usage,
             "memory_usage": memory_usage,
             "read_time": read_time,
             "rx_bytes": rx_bytes,
-            "tx_bytes": tx_bytes
+            "tx_bytes": tx_bytes,
+            "type": "measurment_data"
         }
         # Serialize to JSON before sending
         await self.respond(measurment_data)
@@ -70,6 +71,8 @@ class BridgeEvaluator():
         }
         # await ai_websocket.send(json.dumps(choose_model))
         model_interactor.send(json.dumps(choose_model))
+        print(model_interactor.wait_for_response())
+        print(model_interactor.wait_for_response())
 
         # Start the chat session
         start_chat = {
@@ -80,6 +83,8 @@ class BridgeEvaluator():
         }
         # await ai_websocket.send(json.dumps(start_chat))
         model_interactor.send(json.dumps(start_chat))
+        print(model_interactor.wait_for_response())
+        print(model_interactor.wait_for_response())
 
         # Start monitoring LLMs physical resources (after starting the chat?)
         async def start_monitor():
@@ -100,13 +105,21 @@ class BridgeEvaluator():
         }
         # await ai_websocket.send(json.dumps(ai_request))
         model_interactor.send(json.dumps(ai_request))
-
+        print(ai_request, "sent to model")
         # Await the AI's response
+        
+        print(model_interactor.wait_for_response())
         ai_response = model_interactor.wait_for_response()
+        ai_response = json.loads(ai_response)["response"]
+        print(ai_response, "received from model")
 
         evaluator = LlmEvaluator()
         await evaluator.give_pair_evaluation(message, ai_response)
 
+        await self.respond(dict(
+            type="response",
+            response=ai_response
+        ))
         return ai_response
     
     async def stop_everything(self) -> None:

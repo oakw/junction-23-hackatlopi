@@ -16,9 +16,11 @@ class DataTransport():
         self.start_server = websockets.serve(self.server, "0.0.0.0", 8765)
 
     async def handle_message(self, message):
+        print("Handling message:", message)
         await self.model_runner.receive(message)
 
     async def send_data(self, data):
+        print("Sending data:", data)
         await self.websocket.send(data)
 
     async def server(self, websocket, path):
