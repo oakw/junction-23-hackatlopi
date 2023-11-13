@@ -2,6 +2,7 @@ import asyncio
 import websockets
 import json
 import time
+import os
 
 from threading import Thread
 from websocket import create_connection
@@ -13,7 +14,7 @@ from app.evaluation import LlmEvaluator
 load_dotenv()
 
 # Start monitoring docker container that runs LLM
-monitor = docker_monitor.DockerMonitor("model_runner-runner-1")
+monitor = docker_monitor.DockerMonitor(os.environ.get("MODEL_DOCKER_NAME", "model_runner-runner-1"))
 monitor.start()
 
 
@@ -150,7 +151,7 @@ class BridgeEvaluator():
 class DataTransport():
     def __init__(self, bridge_evaluator: BridgeEvaluator):
         self.bridge_evaluator = bridge_evaluator
-        self.start_server = websockets.serve(self.server, "localhost", 8764)
+        self.start_server = websockets.serve(self.server, "0.0.0.0", 8764)
 
     async def handle_message(self, message):
         await self.bridge_evaluator.receive(message)
@@ -167,7 +168,7 @@ class DataTransport():
 
 class ModelInteractionClient():
     def __init__(self):
-        self.websocket = create_connection("ws://localhost:8765")
+        self.websocket = create_connection(os.environ.get("MODEL_WEBSOCKET_URL", "ws://localhost:8765"))
 
     def send(self, message):
         self.websocket.send(message)

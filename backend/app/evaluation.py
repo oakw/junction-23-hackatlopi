@@ -31,7 +31,7 @@ class LlmEvaluator():
     comet_workspace = os.environ.get("COMET_WORKSPACE")
     comet_project = os.environ.get("COMET_PROJECT")
 
-    self.llm = OpenAI(model="gpt-4")
+    self.llm = OpenAI(model=os.environ.get("GPT_MODEL_USED", "gpt-3.5"))
     self.service_context = ServiceContext.from_defaults(llm=self.llm)
 
     # comet_llm.init(comet_api_key, comet_workspace, project=comet_project)
